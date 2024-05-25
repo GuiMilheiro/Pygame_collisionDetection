@@ -1,45 +1,41 @@
 import pygame, sys, random
 from pygame.locals import *
 
-#Configurando o pygame
+# Configurando o pygame
 pygame.init()
 mainClock = pygame.time.Clock()
 
-# Configuring the window
+# Configurando a janela
 WINDOWWIDTH = 1000
 WINDOWHEIGHT = 1000
 windowSurface = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT), 0, 32)
 pygame.display.set_caption('Collision Detection')
 
-# Defining colors
+# Definindo cores
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
 WHITE = (255, 255, 255)
 GREY = (128, 128, 128)
 
 def centralizar_player():
-    """Calculates and sets the player's position to the center of the window."""
-    player_x = (WINDOWWIDTH - player.width) // 2  # Center X position
-    player_y = (WINDOWHEIGHT - player.height) // 2  # Center Y position
-    player.left = player_x  # Update player's X coordinate
-    player.top = player_y  # Update player's Y coordinate
+    """Calcula e posiciona o player no centro da janela."""
+    player.left = (WINDOWWIDTH - player.width) // 2  # Centraliza na posição X
+    player.top  = (WINDOWHEIGHT - player.height) // 2  # Centraliza na posição Y
 
-
-# Configuring the player and food
+# Configurando o player e comida
 foodCounter = 0
 NEWFOOD = 40
 FOODSIZE = 20
-player = pygame.Rect(500, 0, 50, 50)  # Placeholder, will be updated by centralizar_player()
+player = pygame.Rect(500, 0, 20, 20)  # Placeholder, será atualizado pelo centralizar_player()
+snake = [player]
 foods = []
-obstaculos = []
 for i in range(20):
-  foods.append(pygame.Rect(random.randint(0, WINDOWWIDTH - FOODSIZE), random.randint(0, WINDOWHEIGHT - FOODSIZE), FOODSIZE, FOODSIZE))
+    foods.append(pygame.Rect(random.randint(0, WINDOWWIDTH - FOODSIZE), random.randint(0, WINDOWHEIGHT - FOODSIZE), FOODSIZE, FOODSIZE))
 
-# Call centralizar_player() to position the player at the start
-centralizar_player()  # This line ensures the player starts centered
+# Chama centralizar_player() para posicionar o player no início
+centralizar_player()  # Esta linha garante que o player comece centralizado
 
-
-#Configurando e criando as variaveis de movimento
+# Configurando e criando as variáveis de movimento
 moveLeft = False
 moveRight = False
 moveUp = False
@@ -47,16 +43,15 @@ moveDown = False
 
 MOVESPEED = 6
 
-
-#Rodando o game em loop
+# Rodando o game em loop
 while True:
-    #Checando eventos
+    # Checando eventos
     for event in pygame.event.get():
         if event.type == QUIT:
             pygame.quit()
             sys.exit()
         if event.type == KEYDOWN:
-            #Checando a variavel do teclado
+            # Checando a variável do teclado
             if event.key == K_LEFT or event.key == K_a:
                 moveRight = False
                 moveLeft = True
@@ -84,57 +79,60 @@ while True:
             if event.key == K_x:
                 player.top = random.randint(0, WINDOWHEIGHT - player.height)
                 player.left = random.randint(0, WINDOWWIDTH - player.width)
-        
+
         if event.type == MOUSEBUTTONUP:
             foods.append(pygame.Rect(event.pos[0], event.pos[1], FOODSIZE, FOODSIZE))
 
     foodCounter += 1
     if foodCounter >= NEWFOOD:
-        #adicione a nova comida
+        # Adicione a nova comida
         foodCounter = 0
         foods.append(pygame.Rect(random.randint(0, WINDOWWIDTH - FOODSIZE), random.randint(0, WINDOWHEIGHT - FOODSIZE), FOODSIZE, FOODSIZE))
 
-    # Desenhe o fundo branco na superfície.
+    # Desenha o fundo branco na superfície
     windowSurface.fill(WHITE)
 
-    #Movimentando o player
+    # Movimentando o player
     if moveDown and player.bottom < WINDOWHEIGHT:
-        player.top += MOVESPEED
-    if moveDown and player.bottom > WINDOWHEIGHT:
-        player.top = 0
+        player.bottom += MOVESPEED
+    if moveDown and player.bottom >= WINDOWHEIGHT:
+        player.bottom = 10 + player.height
 
     if moveUp and player.top > 0:
         player.top -= MOVESPEED
-    if moveUp and player.top < 0:
-        player.top = WINDOWHEIGHT 
-    
+    if moveUp and player.top <= 0:
+        player.top = WINDOWHEIGHT - player.height
 
     if moveLeft and player.left > 0:
         player.left -= MOVESPEED
-    if moveLeft and player.left < 0:
-        player.left = WINDOWWIDTH
+    if moveLeft and player.left <= 0:
+        player.left = WINDOWWIDTH - player.width
 
-    if moveRight and player.right < WINDOWHEIGHT:
+    if moveRight and player.right < WINDOWWIDTH:
         player.right += MOVESPEED
-    if moveRight and player.right > WINDOWHEIGHT:
-        player.right = 0 + player.width
-    
+    if moveRight and player.right >= WINDOWWIDTH:
+        player.right = 10 + player.width
 
-    #Desenhe o player na superficie
-    pygame.draw.rect(windowSurface, BLACK, player)
+    # Atualiza segmentos do corpo
+    for i in range(len(snake) - 1, 0, -1):
+        snake[i].topleft = snake[i - 1].topleft
 
-    #Checando se o player colidiu com algum quadrado de comida
+    # Desenha a cobra
+    for segment in snake:
+        pygame.draw.rect(windowSurface, BLACK, segment)
+
+    # Checando se o player colidiu com algum quadrado de comida
     for food in foods[:]:
         if player.colliderect(food):
             foods.remove(food)
-            #Aumentando o tamanho do player a cada comida
-            player.height += 5
-            player.width += 5
-            
-    #Trazendo a comida
+            # Adiciona um novo segmento à cobra
+            new_segment = pygame.Rect(snake[-1].left, snake[-1].top, player.width, player.height)
+            snake.append(new_segment)
+
+    # Desenha a comida
     for i in range(len(foods)):
         pygame.draw.rect(windowSurface, GREEN, foods[i])
 
-    #Trazendo a janela para a tela
+    # Atualiza a janela na tela
     pygame.display.update()
     mainClock.tick(40)
